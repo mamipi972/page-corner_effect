@@ -1,118 +1,184 @@
-# Page Effects — coin de page qui tourne & papier déchiré
+# Effets de page / Page Effects — GIMP 3
 
-Plugin JavaScript **sans dépendance** (≈ 20 Ko non minifié) pour :
+**[Français](#français)** · **[English](#english)**
 
-- **PageCurl** : soulever / corner / tourner l'un des 4 coins d'une page (image, carte, bloc HTML…), au survol, au glisser (souris ou tactile) ou par programme, en révélant un contenu placé dessous ;
-- **PaperTear** : effets de papier déchiré — **bords déchirés** (`edge`), **trou arraché** (`hole`) et **bande arrachée avec rouleau** (`strip`).
+![Aperçu des effets rendus par GIMP / Preview of the effects rendered by GIMP](apercu.png)
 
-Fonctionne en `<script>`, en module CommonJS/AMD et comme plugin **jQuery** (si jQuery est présent).
-Démo : ouvrez `index.html` dans un navigateur.
+---
 
-**Version GIMP 3** : les mêmes effets existent sous forme de plug-in pour GIMP 3 (*Filtres › Effets de page*) — voir [`gimp/README.md`](gimp/README.md).
+## Français
 
-## Installation
+Plug-in GIMP 3 : effets de **coin de page qui tourne** et de **papier déchiré**.
+Plug-in Python 3 (API GObject de GIMP 3), testé avec GIMP 3.2.2.
 
-```html
-<script src="src/page-effects.js"></script>
+Après installation, les filtres se trouvent dans **Filtres › Effets de page** :
+
+- **Coin de page…** : soulève et enroule un coin du calque actif ;
+- **Papier déchiré…** : bords déchirés, trou arraché ou bande arrachée avec rouleau.
+
+### Installation
+
+1. Repérez le dossier des greffons : *Édition › Préférences › Dossiers › Greffons*. Par défaut :
+   - Windows : `%APPDATA%\GIMP\3.0\plug-ins\` (ou `3.2`, selon votre version)
+   - macOS : `~/Library/Application Support/GIMP/3.0/plug-ins/`
+   - Linux : `~/.config/GIMP/3.0/plug-ins/`
+2. Copiez-y **le dossier entier** `page-effects/` (il doit contenir `page-effects.py` et `pe_core.py`).
+   Le nom du dossier doit rester identique au nom du fichier `.py`.
+3. Linux / macOS : rendez le script exécutable :
+   `chmod +x page-effects/page-effects.py`
+4. Redémarrez GIMP.
+
+### Utilisation
+
+Les effets sont **non destructifs** : le calque reçoit un **masque de calque**, et le verso de la page,
+la frange du papier et les ombres sont créés dans des **calques séparés**, que vous pouvez retoucher,
+déplacer ou supprimer. Ce qui apparaît sous la page, c'est **le contenu des calques du dessous** :
+placez une autre photo en dessous pour obtenir l'effet « page qui se tourne sur une autre photo ».
+
+#### Coin de page
+
+| Paramètre | Rôle |
+|---|---|
+| Coin | Bas droit, bas gauche, haut droit, haut gauche |
+| Soulèvement (%) | Déplacement du coin, en % de la diagonale (petit = coin corné, 60 %+ = page presque tournée) |
+| Angle (°) | Écart par rapport à la diagonale (courbure plus horizontale ou plus verticale) |
+| Rayon de courbure | 0 = automatique |
+| Couleur du verso | Couleur du dos du papier |
+| Ombre (%) | Opacité du calque d'ombre |
+| Remplir le dessous | Ajoute un calque de couleur sous la page (sinon : transparence / calques inférieurs) |
+
+Calques créés : *Coin de page — verso*, *Coin de page — ombre* (et *Dessous* si demandé).
+
+#### Papier déchiré
+
+| Paramètre | Rôle |
+|---|---|
+| Type | Bords déchirés, trou arraché, bande arrachée (rouleau) |
+| Profondeur des dents | Amplitude de la dentelure (px) |
+| Frange blanche | Largeur de l'âme blanche du papier visible le long de la déchirure |
+| Rugosité | Finesse des fibres |
+| Graine | Changez-la pour obtenir une autre forme de déchirure |
+| Bord haut / droit / bas / gauche | (Bords déchirés) côtés à déchirer |
+| Trou : centre, largeur, hauteur, angle | (Trou) position et forme en % du calque |
+| Bande : position, épaisseur, sens, avancement, rouleau | (Bande) le rouleau de papier est dessiné au bout de la déchirure |
+
+Calques créés : *Papier déchiré — papier*, *Papier déchiré — ombre*, et pour la bande *Rouleau* / *Rouleau — ombre*.
+
+### Script / traitement par lots
+
+Les procédures sont disponibles dans le PDB (*Filtres › Console Python*) :
+
+```python
+pdb = Gimp.get_pdb()
+proc = pdb.lookup_procedure('plug-in-pe-page-curl')     # ou 'plug-in-pe-paper-tear'
+cfg = proc.create_config()
+cfg.set_property('image', image)
+cfg.set_core_object_array('drawables', [layer])
+cfg.set_property('corner', 'tr')
+cfg.set_property('amount', 25.0)
+proc.run(cfg)
 ```
 
-## Coin de page (PageCurl)
+### Remarques
 
-```js
-const curl = PageEffects.pageCurl('#photo', {
-  corner: 'br',                 // 'tl' | 'tr' | 'bl' | 'br'
-  hoverPeel: 70,                // soulèvement au survol (px)
-  under: 'images/dessous.jpg'   // ce qui apparaît sous la page
-});
+- Sélectionnez **un seul calque de pixels** (pas un groupe) avant de lancer le filtre.
+- Si le calque a déjà un masque, la découpe y est ajoutée.
+- Le rendu du verso est calculé en Python : sur de très grandes images (> 20 Mpx) avec un fort
+  soulèvement, comptez quelques secondes.
+- GIMP intègre aussi un ancien filtre *Filtres › Déformations › Recourbement de page* ; celui-ci offre
+  une courbure éclairée, les 4 coins, un angle libre et les effets de papier déchiré.
 
-curl.peelTo(150);   // soulève le coin de 150 px (ou peelTo({x, y}))
-curl.turn();        // tourne entièrement la page
-curl.reset();       // revient au repos
+### Licence
+
+MIT
+
+---
+
+## English
+
+GIMP 3 plug-in: **page curl / page turn** and **torn paper** effects.
+Python 3 plug-in (GIMP 3 GObject API), tested with GIMP 3.2.2.
+
+Once installed, the filters are under **Filters › Effets de page**:
+
+- **Coin de page…** (*Page curl*): lifts and rolls up a corner of the active layer;
+- **Papier déchiré…** (*Torn paper*): torn edges, torn hole, or a torn-off strip with a paper roll.
+
+> The plug-in's menu entries and dialog labels are in French. The tables below give the English
+> meaning of each setting next to its French label.
+
+### Installation
+
+1. Find your plug-ins folder: *Edit › Preferences › Folders › Plug-ins*. By default:
+   - Windows: `%APPDATA%\GIMP\3.0\plug-ins\` (or `3.2`, depending on your version)
+   - macOS: `~/Library/Application Support/GIMP/3.0/plug-ins/`
+   - Linux: `~/.config/GIMP/3.0/plug-ins/`
+2. Copy **the whole** `page-effects/` folder there (it must contain `page-effects.py` and `pe_core.py`).
+   The folder name must stay identical to the `.py` file name.
+3. Linux / macOS: make the script executable:
+   `chmod +x page-effects/page-effects.py`
+4. Restart GIMP.
+
+### Usage
+
+The effects are **non-destructive**: the layer gets a **layer mask**, and the back of the page,
+the paper fringe and the shadows are created as **separate layers** that you can edit, move or
+delete. Whatever shows under the page is **the content of the layers below**: put another photo
+underneath to get the "page turning onto another photo" effect.
+
+#### Page curl (*Coin de page*)
+
+| Setting (French label) | Meaning |
+|---|---|
+| Coin | Corner: bottom right, bottom left, top right, top left |
+| Soulèvement (%) | Curl amount: corner displacement, in % of the diagonal (small = dog-ear, 60 %+ = page almost turned) |
+| Angle (°) | Deviation from the diagonal (more horizontal or more vertical curl) |
+| Rayon de courbure | Curl radius: 0 = automatic |
+| Couleur du verso | Back color: color of the back of the paper |
+| Ombre (%) | Shadow: opacity of the shadow layer |
+| Remplir le dessous | Fill underneath: adds a color layer below the page (otherwise: transparency / lower layers) |
+
+Layers created: *Coin de page — verso* (back), *Coin de page — ombre* (shadow), and *Dessous* (underneath) if requested.
+
+#### Torn paper (*Papier déchiré*)
+
+| Setting (French label) | Meaning |
+|---|---|
+| Type | Torn edges, torn hole, torn-off strip (roll) |
+| Profondeur des dents | Tooth depth: amplitude of the jagged edge (px) |
+| Frange blanche | White fringe: width of the white paper core visible along the tear |
+| Rugosité | Roughness: fineness of the fibers |
+| Graine | Seed: change it to get a different tear shape |
+| Bord haut / droit / bas / gauche | (Torn edges) top / right / bottom / left sides to tear |
+| Trou : centre, largeur, hauteur, angle | (Hole) center, width, height, angle, in % of the layer |
+| Bande : position, épaisseur, sens, avancement, rouleau | (Strip) position, thickness, direction, progress; the paper roll is drawn at the end of the tear |
+
+Layers created: *Papier déchiré — papier* (paper), *Papier déchiré — ombre* (shadow), and for the strip *Rouleau* / *Rouleau — ombre* (roll / roll shadow).
+
+### Scripting / batch processing
+
+The procedures are available in the PDB (*Filters › Python Console*):
+
+```python
+pdb = Gimp.get_pdb()
+proc = pdb.lookup_procedure('plug-in-pe-page-curl')     # or 'plug-in-pe-paper-tear'
+cfg = proc.create_config()
+cfg.set_property('image', image)
+cfg.set_core_object_array('drawables', [layer])
+cfg.set_property('corner', 'tr')
+cfg.set_property('amount', 25.0)
+proc.run(cfg)
 ```
 
-| Option | Défaut | Rôle |
-|---|---|---|
-| `corner` | `'br'` | Coin animé : `tl`, `tr`, `bl`, `br` (ou `top-left`, `bottom-right`…) |
-| `peel` | `0` | Soulèvement au repos, en px (coin corné permanent si > 0) |
-| `hoverPeel` | `60` | Soulèvement au survol du coin |
-| `interactive` | `true` | Le coin se tire à la souris / au doigt |
-| `turnable` | `true` | Relâcher au-delà du seuil tourne la page |
-| `turnThreshold` | `0.35` | Seuil (fraction de la diagonale) |
-| `clickToTurn` | `false` | Un clic sur le coin tourne la page (et la remet) |
-| `afterTurn` | `'stay'` | `'stay'` ou `'reset'` (la page revient automatiquement) |
-| `radius` | auto | Rayon max de la courbure (px) |
-| `backColor` | `'#f4f4f1'` | Couleur du verso du papier |
-| `shadow` | `0.45` | Opacité des ombres (0 = aucune) |
-| `under` | `null` | Élément DOM, chaîne HTML, URL d'image ou couleur / dégradé CSS |
-| `hotspot` | `90` | Taille de la zone sensible du coin (px) |
-| `duration` | `450` | Durée des animations (ms) |
-| `onTurn`, `onChange` | `null` | Rappels (`onChange(progress, instance)`) |
+### Notes
 
-Événements DOM : `pagecurl:turn`, `pagecurl:reset`.
+- Select **a single pixel layer** (not a group) before running the filter.
+- If the layer already has a mask, the cut-out is added to it.
+- The back of the page is rendered in Python: on very large images (> 20 MP) with a strong
+  curl, allow a few seconds.
+- GIMP also ships an older *Filters › Distorts › Page Curl* filter; this plug-in adds a lit curl,
+  all 4 corners, a free angle and the torn-paper effects.
 
-## Papier déchiré (PaperTear)
-
-```js
-// Bords déchirés
-PageEffects.paperTear('.note', { mode: 'edge', sides: ['top', 'bottom'] });
-
-// Trou arraché révélant un contenu
-PageEffects.paperTear('#affiche', {
-  mode: 'hole',
-  under: '<div class="surprise">Surprise !</div>',
-  hole: { x: 0.5, y: 0.5, width: 0.6, height: 0.25, angle: -25 }
-});
-
-// Bande arrachée avec rouleau (animable et déplaçable)
-const tear = PageEffects.paperTear('#bandeau', {
-  mode: 'strip', under: 'images/dessous.jpg',
-  strip: { position: 0.5, width: 0.3, direction: 'right', progress: 0 }
-});
-tear.tearTo(1);          // anime l'arrachage (0..1)
-```
-
-| Option | Défaut | Rôle |
-|---|---|---|
-| `mode` | `'edge'` | `'edge'`, `'hole'` ou `'strip'` |
-| `sides` | `'bottom'` | (edge) `'top'`, `'right'`, `'bottom'`, `'left'`, `'all'` ou tableau |
-| `depth` | `9` | Amplitude des dentelures (px) |
-| `rim` | `6` | Largeur de la frange blanche du papier (px) |
-| `roughness` | `0.6` | Finesse des fibres (0..1) |
-| `seed` | `7` | Graine : change la forme de la déchirure |
-| `paperColor` | `'#fbfbf8'` | Couleur de l'âme du papier |
-| `shadow` | `0.35` | Opacité des ombres |
-| `under` | `null` | (hole / strip) contenu révélé |
-| `hole` | `{x:.5, y:.5, width:.6, height:.22, angle:-25}` | Position / taille relatives du trou |
-| `strip` | `{position:.5, width:.3, direction:'right', progress:1, roll:true}` | Bande : position, épaisseur, sens (`right`, `left`, `down`, `up`), avancement |
-| `interactive` | `true` | (strip) le rouleau se tire à la souris / au doigt |
-
-Méthodes : `setOptions(opts)`, `refresh()`, `tearTo(p, durée)`, `destroy()`.
-Événements DOM : `papertear:progress`, `papertear:complete`.
-
-## Sans JavaScript : attributs `data-`
-
-```html
-<img src="photo.jpg" data-page-curl='{"corner":"tr","peel":50}'>
-<div data-paper-tear='{"mode":"edge","sides":"all"}'>…</div>
-```
-
-Les éléments sont initialisés automatiquement au chargement (ou via `PageEffects.init(conteneur)` pour du contenu ajouté plus tard). `PageEffects.get(el)` renvoie l'instance.
-
-## jQuery
-
-```js
-$('.carte').pageCurl({ corner: 'bl', peel: 40 });
-$('.carte').pageCurl('turn');          // appel de méthode
-$('.note').paperTear({ sides: 'all' });
-```
-
-## Fonctionnement
-
-- Le coin est modélisé comme une feuille qui s'enroule autour d'un cylindre puis se rabat à plat : la partie restante de la page est découpée en CSS (`clip-path`), le rabat (verso éclairé, ombres) est dessiné dans un `<canvas>` superposé, ce qui fonctionne avec n'importe quel contenu HTML.
-- Les déchirures utilisent un bruit fractal déterministe (même `seed` → même forme) : l'image est découpée en `clip-path`, la frange blanche et l'ombre sont dessinées dessous dans un `<canvas>`.
-
-Navigateurs : versions récentes de Chrome, Edge, Firefox et Safari (`clip-path: path()` requis pour les modes `hole` et `strip`).
-
-## Licence
+### License
 
 MIT

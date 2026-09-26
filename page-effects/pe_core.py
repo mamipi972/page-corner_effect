@@ -4,7 +4,6 @@ Noyau géométrique et rendu des effets « coin de page » et « papier déchir�
 
 Module Python pur (aucune dépendance à GIMP) : il calcule des polygones et des
 tampons de pixels RGBA 8 bits que le plug-in GIMP transforme ensuite en calques.
-C'est la transposition des algorithmes de src/page-effects.js.
 """
 import math
 import random

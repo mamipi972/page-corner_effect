@@ -8,6 +8,8 @@ Plugin JavaScript **sans dépendance** (≈ 20 Ko non minifié) pour :
 Fonctionne en `<script>`, en module CommonJS/AMD et comme plugin **jQuery** (si jQuery est présent).
 Démo : ouvrez `index.html` dans un navigateur.
 
+**Version GIMP 3** : les mêmes effets existent sous forme de plug-in pour GIMP 3 (*Filtres › Effets de page*) — voir [`gimp/README.md`](gimp/README.md).
+
 ## Installation
 
 ```html

@@ -1,0 +1,9 @@
+{
+  "name": "page-corner-effect",
+  "version": "1.0.0",
+  "description": "Effet de coin de page qui tourne et de papier déchiré, en JavaScript sans dépendance (plugin jQuery optionnel).",
+  "main": "src/page-effects.js",
+  "files": ["src"],
+  "keywords": ["page curl", "page turn", "peel", "torn paper", "coin de page", "papier déchiré", "jquery-plugin"],
+  "license": "MIT"
+}
